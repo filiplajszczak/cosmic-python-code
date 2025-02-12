@@ -1,6 +1,9 @@
 import tempfile
 from pathlib import Path
 import shutil
+
+import pytest
+
 from sync import FileSystem, sync
 
 
@@ -47,12 +50,19 @@ class TestE2E:
             shutil.rmtree(dest)
 
 
-def test_when_a_file_exists_in_the_source_but_not_the_destination(mocker):
-    fakefs = mocker.Mock(
-        read=lambda path: {
+@pytest.fixture
+def get_fakefs(mocker):
+    def _get_fakefs(paths):
+        return mocker.Mock(read=lambda path: paths[path])
+    return _get_fakefs
+
+
+def test_when_a_file_exists_in_the_source_but_not_the_destination(get_fakefs):
+    fakefs = get_fakefs(
+        {
             '/src': {"hash1": "fn1"},
             '/dst': {},
-        }[path]
+        }
     )
 
     sync('/src', '/dst', filesystem=fakefs)
@@ -62,12 +72,12 @@ def test_when_a_file_exists_in_the_source_but_not_the_destination(mocker):
     fakefs.delete.assert_not_called()
 
 
-def test_when_a_file_has_been_renamed_in_the_source(mocker):
-    fakefs = mocker.Mock(
-        read=lambda path: {
+def test_when_a_file_has_been_renamed_in_the_source(get_fakefs):
+    fakefs = get_fakefs(
+        {
             '/src': {"hash1": "fn1"},
             '/dst': {"hash1": "fn2"},
-        }[path]
+        }
     )
 
     sync('/src', '/dst', filesystem=fakefs)
