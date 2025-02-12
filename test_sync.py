@@ -47,38 +47,31 @@ class TestE2E:
             shutil.rmtree(dest)
 
 
-class FakeFilesystem:
-    def __init__(self, path_hashes):
-        self.path_hashes = path_hashes
-        self.actions = []
+def test_when_a_file_exists_in_the_source_but_not_the_destination(mocker):
+    fakefs = mocker.Mock(
+        read=lambda path: {
+            '/src': {"hash1": "fn1"},
+            '/dst': {},
+        }[path]
+    )
 
-    def read(self, path):
-        return self.path_hashes[path]
-
-    def copy(self, src, dest):
-        self.actions.append(('COPY', src, dest))
-
-    def move(self, src, dest):
-        self.actions.append(('MOVE', src, dest))
-
-    def delete(self, dest):
-        self.actions.append(('DELETE', dest))
-
-
-
-def test_when_a_file_exists_in_the_source_but_not_the_destination():
-    fakefs = FakeFilesystem({
-        '/src': {"hash1": "fn1"},
-        '/dst': {},
-    })
     sync('/src', '/dst', filesystem=fakefs)
-    assert fakefs.actions == [("COPY", Path("/src/fn1"), Path("/dst/fn1"))]
+
+    fakefs.copy.assert_called_once_with(Path("/src/fn1"), Path("/dst/fn1"))
+    fakefs.move.assert_not_called()
+    fakefs.delete.assert_not_called()
 
 
-def test_when_a_file_has_been_renamed_in_the_source():
-    fakefs = FakeFilesystem({
-        '/src': {"hash1": "fn1"},
-        '/dst': {"hash1": "fn2"},
-    })
+def test_when_a_file_has_been_renamed_in_the_source(mocker):
+    fakefs = mocker.Mock(
+        read=lambda path: {
+            '/src': {"hash1": "fn1"},
+            '/dst': {"hash1": "fn2"},
+        }[path]
+    )
+
     sync('/src', '/dst', filesystem=fakefs)
-    assert fakefs.actions == [("MOVE", Path("/dst/fn2"), Path("/dst/fn1"))]
+
+    fakefs.move.assert_called_once_with(Path("/dst/fn2"), Path("/dst/fn1"))
+    fakefs.copy.assert_not_called()
+    fakefs.delete.assert_not_called()
