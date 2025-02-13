@@ -1,9 +1,29 @@
+import abc
 import hashlib
 import os
 import shutil
 from pathlib import Path
 
-class FileSystem:
+
+class AbstractFileSystem(abc.ABC):
+    @abc.abstractmethod
+    def read(self, path):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def copy(self, source, dest):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def move(self, source, dest):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def delete(self, dest):
+        raise NotImplementedError
+
+
+class FileSystem(AbstractFileSystem):
 
     def read(self, path):
         return read_paths_and_hashes(path)

@@ -4,7 +4,7 @@ import shutil
 
 import pytest
 
-from sync import FileSystem, sync
+from sync import AbstractFileSystem, sync
 
 
 class TestE2E:
@@ -53,7 +53,10 @@ class TestE2E:
 @pytest.fixture
 def get_fakefs(mocker):
     def _get_fakefs(paths):
-        return mocker.Mock(read=lambda path: paths[path])
+        return mocker.Mock(
+            read=lambda path: paths[path],
+            spec=AbstractFileSystem
+        )
     return _get_fakefs
 
 
